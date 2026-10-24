@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monad Bird</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--glass:rgba(255,255,255,.07);--line:rgba(255,255,255,.14);--mut:#aab6ff}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:'Fredoka',system-ui,sans-serif;color:#fff;background:#0b0a1a;overflow-x:hidden}
+  .bg{position:fixed;inset:0;z-index:-1;overflow:hidden;
+    background:radial-gradient(circle at 15% 8%,#3b3fd8aa,transparent 45%),radial-gradient(circle at 88% 22%,#c04bffaa,transparent 40%),radial-gradient(circle at 50% 105%,#ff8a3d66,transparent 50%),#0b0a1a}
+  .bg i{position:absolute;bottom:-60px;font-style:normal;font-size:38px;opacity:.2;animation:up 16s linear infinite}
+  @keyframes up{to{transform:translateY(-115vh) rotate(25deg)}}
+  .wrap{max-width:460px;margin:auto;padding:16px 14px 60px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .logo{font-size:24px;font-weight:700}.logo b{color:#a995ff}
+  .row2{display:flex;gap:8px;align-items:center}
+  .btn{border:0;border-radius:999px;color:#fff;font:600 15px 'Fredoka',system-ui,sans-serif;padding:10px 18px;cursor:pointer;
+    background:linear-gradient(135deg,#836ef9,#c04bff);box-shadow:0 6px 20px #836ef955;transition:.15s}
+  .btn:hover{transform:translateY(-2px)}
+  .btn.ghost{background:var(--glass);box-shadow:none;border:1px solid var(--line)}
+  .icon{width:40px;height:40px;padding:0;font-size:18px}
+  .hero{text-align:center;margin:22px 0 8px}
+  .hero h1{margin:0;font-size:40px;line-height:1.05;background:linear-gradient(90deg,#fff,#c9bfff,#ffd27a);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:var(--mut);margin:8px 0 0}
+  .chip{display:inline-block;margin-top:10px;padding:5px 12px;border-radius:99px;background:var(--glass);border:1px solid var(--line);font-size:13px;color:var(--mut)}
+  .card{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:16px;margin:16px 0;backdrop-filter:blur(10px)}
+  .card h2{margin:0 0 10px;font-size:18px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .bcard{position:relative;text-align:center;padding:16px 10px;border-radius:20px;cursor:pointer;transition:.2s;
+    background:linear-gradient(160deg,color-mix(in srgb,var(--c) 28%,transparent),var(--glass));
+    border:1px solid color-mix(in srgb,var(--c) 55%,transparent)}
+  .bcard:hover:not(.lock){transform:translateY(-4px) scale(1.02);box-shadow:0 10px 28px color-mix(in srgb,var(--c) 40%,transparent)}
+  .bcard.lock{opacity:.4;cursor:not-allowed;filter:grayscale(.6)}
+  .bcard .em{font-size:48px;line-height:1.1}.bcard b{display:block;font-size:17px;margin-top:4px}
+  .bcard small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+  .tag{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;color:#14101f;background:var(--c)}
+  .done::after{content:"✅";position:absolute;top:8px;right:10px}
+  #stage{display:none;position:relative;max-width:400px;margin:16px auto}
+  canvas{width:100%;display:block;border-radius:24px;box-shadow:0 14px 50px #000a,0 0 0 3px #ffffff22;touch-action:manipulation}
+  #ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px;
+    text-align:center;border-radius:24px;background:#0b0a1acc;backdrop-filter:blur(4px)}
+  #ov h2{margin:0;font-size:30px}#ov div{color:#d6dcff}
+  #status{text-align:center;color:var(--mut);font-size:14px;min-height:20px}
+  a{color:#c9bfff}
+  .trophies{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .slot{aspect-ratio:1;border-radius:14px;background:#ffffff0d;border:2px dashed #ffffff22;display:flex;align-items:center;justify-content:center;font-size:11px;color:#8b80b8;overflow:hidden;text-align:center}
+  .slot.on{border:2px solid var(--c);box-shadow:0 0 16px color-mix(in srgb,var(--c) 50%,transparent)}
+  .slot img{width:100%;height:100%}
+  .lb{display:flex;justify-content:space-between;padding:9px 6px;border-bottom:1px solid #ffffff14}
+  .lb:last-child{border:0}.me{color:#7df9ff;font-weight:700}
+  #modal{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:9;padding:16px}
+  #modal>div{background:linear-gradient(160deg,#2a1d5e,#14101f);border:1px solid var(--line);border-radius:26px;padding:24px;max-width:330px;text-align:center;animation:pop .45s}
+  #modal img{width:100%;border-radius:18px;margin:8px 0}
+  @keyframes pop{from{transform:scale(.5) rotate(-6deg);opacity:0}}
+  .conf{position:fixed;top:-30px;font-size:26px;z-index:10;animation:fall 2.4s linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+</style>
+</head>
+<body>
+<div class="bg"><i style="left:8%">☁️</i><i style="left:28%;animation-delay:-5s">🍎</i><i style="left:52%;animation-delay:-9s">🪶</i><i style="left:74%;animation-delay:-3s">✨</i><i style="left:90%;animation-delay:-12s">☁️</i></div>
+<div class="wrap">
+  <div class="top">
+    <div class="logo">🐦 Monad<b>Bird</b></div>
+    <div class="row2"><button class="btn ghost icon" id="snd">🔊</button><button class="btn" id="connectBtn">Connect Wallet</button></div>
+  </div>
+  <div class="hero">
+    <h1>Terbang. Makan.<br>Kalahkan Boss.</h1>
+    <p>Menangkan NFT trophy on-chain di Monad</p>
+    <span class="chip" id="account">⚪ Belum terhubung</span>
+  </div>
+
+  <div class="card" id="menu"><h2>⚔️ Pilih Boss</h2><div class="grid" id="bosses"><div style="grid-column:1/-1;text-align:center;color:var(--mut)">Connect wallet untuk mulai</div></div></div>
+
+  <div id="stage"><canvas id="cv"></canvas><div id="ov"></div></div>
+  <div id="status"></div>
+
+  <div class="card"><h2>🏅 Koleksi Trophy</h2><div class="trophies" id="trophies"></div></div>
+  <div class="card"><h2>🏆 Top 5 Skor</h2><div id="board"><div style="color:var(--mut)">Belum ada pemain</div></div></div>
+</div>
+
+<div id="modal"><div>
+  <h2 id="mTitle" style="margin:0"></h2><img id="mImg" />
+  <p id="mText" style="color:var(--mut)"></p>
+  <button class="btn" onclick="document.getElementById('modal').style.display='none'">Lanjut</button>
+</div></div>
+
+<script src="game-core.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script>
+const CONTRACT_ADDRESS = "0x40D3e74a8c3134475F7AdBa409B881D1d8aA4482";
+const ABI = [
+  "function claim(uint8,uint256,bytes)",
+  "function highestDefeated(address) view returns (uint8)",
+  "function trophyOf(address,uint8) view returns (uint256)",
+  "function tokenURI(uint256) view returns (string)",
+  "function getLeaderboard() view returns (address[5], uint256[5])"
+];
+const CHAIN = {chainId:"0x279F",chainName:"Monad Testnet",
+  nativeCurrency:{name:"Monad",symbol:"MON",decimals:18},
+  rpcUrls:["https://testnet-rpc.monad.xyz"],blockExplorerUrls:["https://testnet.monadvision.com"]};
+const RAR=["","Common","Rare","Epic","Legendary"], EM=["","🦅","🐲","🔥","👑"], COL=["","#d9b988","#6aa9ff","#ff8a3d","#ffd54a"];
+const $=id=>document.getElementById(id), short=a=>a.slice(0,6)+"..."+a.slice(-4);
+const cv=$("cv"), x=cv.getContext("2d"); cv.width=Core.W*2; cv.height=Core.H*2; x.setTransform(2,0,0,2,0,0);
+const STEP=1000/60, FONT="Fredoka,system-ui,sans-serif";
+let c,me,HD=0,T=[0,0,0,0,0],g,inputs=[],seed=0,bossId=0,mode="menu",flapReq=false,last=0,acc=0,timer;
+let parts=[],shake=0,flapAnim=0,bannerT=0,muted=false,AC;
+const imgCache={}, setStatus=t=>$("status").innerHTML=t;
+
+// ===== suara =====
+function beep(f,d,type="sine",v=.05){ if(muted) return;
+  try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),k=AC.createGain(); o.type=type; o.frequency.value=f; k.gain.value=v;
+    o.connect(k); k.connect(AC.destination); o.start(); k.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d); o.stop(AC.currentTime+d);
+  }catch(e){} }
+$("snd").onclick=()=>{ muted=!muted; $("snd").textContent=muted?"🔇":"🔊"; };
+
+async function nft(id){
+  if(imgCache[id]) return imgCache[id];
+  const uri=await c.tokenURI(id);
+  return imgCache[id]=JSON.parse(atob(uri.split(",")[1])).image;
+}
+
+// ===== wallet & data =====
+async function connect(){
+  try{
+    if(!window.ethereum) return alert("Install MetaMask dulu!");
+    await ethereum.request({method:"eth_requestAccounts"});
+    try{ await ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN.chainId}]}); }
+    catch(e){ if(e.code===4902) await ethereum.request({method:"wallet_addEthereumChain",params:[CHAIN]}); else throw e; }
+    const signer=await new ethers.BrowserProvider(ethereum).getSigner();
+    me=await signer.getAddress();
+    c=new ethers.Contract(CONTRACT_ADDRESS,ABI,signer);
+    $("account").textContent="🟢 "+short(me)+" · Monad Testnet";
+    $("connectBtn").textContent="Terhubung ✅";
+    await refresh();
+    clearInterval(timer); timer=setInterval(()=>{ if(mode==="menu") refresh(); },15000);
+  }catch(e){ setStatus("Gagal connect: "+(e.shortMessage||e.message)); }
+}
+
+async function refresh(){
+  try{
+    HD=Number(await c.highestDefeated(me));
+    for(let i=1;i<=4;i++) T[i]=Number(await c.trophyOf(me,i));
+    renderMenu();
+    let h="";
+    for(let i=1;i<=4;i++) h+=T[i]?`<div class="slot on" style="--c:${COL[i]}"><img src="${await nft(T[i])}"></div>`:`<div class="slot">🔒<br>${RAR[i]}</div>`;
+    $("trophies").innerHTML=h;
+    const [addrs,scores]=await c.getLeaderboard(), medal=["🥇","🥈","🥉","4.","5."];
+    let rows="";
+    addrs.forEach((a,i)=>{ if(scores[i]>0n) rows+=`<div class="lb ${a.toLowerCase()===me.toLowerCase()?"me":""}"><span>${medal[i]} ${short(a)}</span><span>${scores[i]} poin</span></div>`; });
+    if(rows) $("board").innerHTML=rows;
+  }catch(e){ console.error(e); }
+}
+
+function renderMenu(){
+  let h="";
+  for(let i=1;i<=4;i++){
+    const b=Core.BOSS[i], locked=i>HD+1;
+    h+=`<div class="bcard ${locked?"lock":""} ${i<=HD?"done":""}" style="--c:${COL[i]}" ${locked?"":`onclick="startRun(${i})"`}>
+      <div class="em">${locked?"🔒":EM[i]}</div><b>${b.name}</b>
+      <small>🍎 ${b.food} · ❤️ ${b.hp} HP</small><small>Kesulitan ${"★".repeat(i)}${"☆".repeat(4-i)}</small>
+      <span class="tag">${RAR[i]}</span></div>`;
+  }
+  $("bosses").innerHTML=h;
+}
+
+function show(title,text,btns=[]){
+  const o=$("ov");
+  o.innerHTML=`<h2>${title}</h2><div>${text}</div>`;
+  btns.forEach(([l,f,gh])=>{ const b=document.createElement("button"); b.className="btn"+(gh?" ghost":""); b.textContent=l; b.onclick=f; o.appendChild(b); });
+  o.style.display="flex";
+}
+const hide=()=>$("ov").style.display="none";
+
+// ===== game =====
+function startRun(id){
+  if(!c) return setStatus("Connect wallet dulu");
+  bossId=id; seed=Math.floor(Math.random()*2147483647);
+  g=Core.newGame(id,seed); inputs=[]; flapReq=false; acc=0; parts=[]; shake=0; bannerT=0;
+  mode="ready"; hide(); setStatus("");
+  $("menu").style.display="none"; $("stage").style.display="block";
+  last=performance.now(); requestAnimationFrame(loop);
+}
+function toMenu(){ mode="menu"; hide(); $("stage").style.display="none"; $("menu").style.display="block"; refresh(); }
+
+function flap(){
+  if(mode==="ready") mode="play";
+  if(mode==="play"){ flapReq=true; flapAnim=8; beep(520,.08,"triangle",.04); }
+}
+$("stage").addEventListener("pointerdown",flap);
+addEventListener("keydown",e=>{ if(e.code==="Space"||e.code==="ArrowUp"){ e.preventDefault(); flap(); } });
+
+function burst(px,py,col,n,sp=3){
+  for(let i=0;i<n;i++){ const a=Math.random()*6.28,v=Math.random()*sp+1;
+    parts.push({x:px,y:py,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:1,c:col,s:2+Math.random()*3}); }
+}
+function pop(px,py,txt,col){ parts.push({x:px,y:py,vx:0,vy:-1,l:1,c:col,t:txt}); }
+
+function loop(ts){
+  const dt=Math.min(100,ts-last); last=ts;
+  if(mode==="play"){
+    acc+=dt;
+    while(acc>=STEP && !g.over){
+      const pf=g.food,pl=g.lives,pb=g.bhp,pp=g.phase;
+      if(flapReq) inputs.push(g.t);
+      Core.step(g,flapReq); flapReq=false; acc-=STEP;
+      if(g.t%3===0) parts.push({x:Core.BX-14,y:g.y+4,vx:-1.2,vy:0,l:.7,c:"#ffffff",s:3});
+      if(g.food>pf){ burst(Core.BX+10,g.y,"#ffd54a",10); pop(Core.BX+20,g.y-20,"+10","#ffe066"); beep(880,.12,"sine",.06); }
+      if(g.lives<pl){ shake=14; burst(Core.BX,g.y,"#ff5a6e",16,4); beep(130,.25,"sawtooth",.07); }
+      if(g.bhp<pb && g.boss){ burst(g.boss.x-20,g.boss.y,"#ffffff",6,2); beep(300,.05,"square",.03); }
+      if(g.phase!==pp){ bannerT=110; beep(220,.4,"sawtooth",.07); }
+      if(g.won){ beep(660,.15); setTimeout(()=>beep(880,.15),150); setTimeout(()=>beep(1180,.3),300); }
+    }
+  }
+  draw();
+  if(g.over && mode==="play"){ mode="over"; finish(); return; }
+  if(mode==="ready"||mode==="play") requestAnimationFrame(loop);
+}
+
+// ===== gambar =====
+function cloud(cx,cy,s){ x.beginPath(); x.arc(cx,cy,26*s,0,7); x.arc(cx+28*s,cy+6*s,20*s,0,7); x.arc(cx-26*s,cy+8*s,18*s,0,7); x.arc(cx+4*s,cy+12*s,24*s,0,7); x.fill(); }
+function hills(col,base,amp,fr,sp){
+  x.fillStyle=col; x.beginPath(); x.moveTo(0,Core.H);
+  for(let i=0;i<=Core.W;i+=10) x.lineTo(i,base+Math.sin((i+g.t*sp)*fr)*amp);
+  x.lineTo(Core.W,Core.H); x.fill();
+}
+function bar(cx,y,w,frac,label,c1,c2){
+  x.fillStyle="#0008"; x.beginPath(); x.roundRect(cx-w/2,y,w,18,9); x.fill();
+  const gg=x.createLinearGradient(cx-w/2,0,cx+w/2,0); gg.addColorStop(0,c1); gg.addColorStop(1,c2);
+  x.fillStyle=gg; x.beginPath(); x.roundRect(cx-w/2,y,Math.max(14,w*Math.max(0,Math.min(1,frac))),18,9); x.fill();
+  x.fillStyle="#fff"; x.font="bold 12px "+FONT; x.textAlign="center"; x.textBaseline="middle"; x.fillText(label,cx,y+10);
+}
+function birdDraw(){
+  const t=g.t;
+  x.save(); x.translate(Core.BX,g.y); x.rotate(Math.max(-.5,Math.min(.9,g.vy*.08)));
+  const bg=x.createLinearGradient(0,-16,0,16); bg.addColorStop(0,"#ffe066"); bg.addColorStop(1,"#ff9f1c");
+  x.fillStyle="#ff9f1c"; x.beginPath(); x.moveTo(-16,-2); x.lineTo(-31,-9); x.lineTo(-28,5); x.fill();
+  x.fillStyle=bg; x.beginPath(); x.ellipse(0,0,19,16,0,0,7); x.fill();
+  x.fillStyle="#fff3b0"; x.beginPath(); x.ellipse(3,6,11,7,0,0,7); x.fill();
+  x.fillStyle="#ff7b00"; x.beginPath(); x.ellipse(-4,3,13,7,Math.sin(t*.5)*.4-(flapAnim>0?.8:0),0,7); x.fill();
+  x.fillStyle="#fff"; x.beginPath(); x.arc(9,-6,6,0,7); x.fill();
+  x.fillStyle="#1a1030"; x.beginPath(); x.arc(11,-6,3,0,7); x.fill();
+  x.fillStyle="#fff"; x.beginPath(); x.arc(12,-7,1,0,7); x.fill();
+  x.fillStyle="#ff6b35"; x.beginPath(); x.moveTo(17,-2); x.lineTo(31,3); x.lineTo(17,7); x.fill();
+  x.fillStyle="#ff8fa3aa"; x.beginPath(); x.arc(8,3,3.5,0,7); x.fill();
+  x.restore();
+}
+
+function draw(){
+  const W=Core.W,H=Core.H,gap=g.b.gap,t=g.t;
+  x.save(); x.clearRect(0,0,W,H);
+  if(shake>0){ x.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake); shake*=.85; if(shake<.5) shake=0; }
+  const sk=x.createLinearGradient(0,0,0,H); sk.addColorStop(0,"#2b3a8f"); sk.addColorStop(.55,"#6f8cff"); sk.addColorStop(1,"#ffcfa0");
+  x.fillStyle=sk; x.fillRect(-12,-12,W+24,H+24);
+  const sg=x.createRadialGradient(290,430,10,290,430,180); sg.addColorStop(0,"#fff3c4"); sg.addColorStop(.3,"#ffd27a88"); sg.addColorStop(1,"#ffd27a00");
+  x.fillStyle=sg; x.fillRect(0,240,W,360);
+  x.fillStyle="#fff3c4"; x.beginPath(); x.arc(290,430,34,0,7); x.fill();
+  x.fillStyle="rgba(255,255,255,.55)";
+  for(let i=0;i<5;i++) cloud(((i*140-t*(.3+i*.12))%620+620)%620-110,70+i*95,.7+(i%3)*.25);
+  hills("#5b4bb5",475,24,.012,.6); hills("#3b2f8f",525,28,.02,1.1);
+
+  g.pipes.forEach(p=>{
+    const gg=x.createLinearGradient(p.x-25,0,p.x+25,0); gg.addColorStop(0,"#1f9a58"); gg.addColorStop(.4,"#5be08f"); gg.addColorStop(1,"#1a8a4d");
+    x.fillStyle=gg; const top=p.gy-gap/2, bot=p.gy+gap/2;
+    x.fillRect(p.x-25,-5,50,top+5); x.fillRect(p.x-25,bot,50,H-bot+5);
+    x.beginPath(); x.roundRect(p.x-31,top-18,62,18,6); x.fill();
+    x.beginPath(); x.roundRect(p.x-31,bot,62,18,6); x.fill();
+  });
+  x.textAlign="center"; x.textBaseline="middle";
+  g.pipes.forEach(p=>{ if(p.food){ x.shadowColor="#ffdd55"; x.shadowBlur=16; x.font="30px serif"; x.fillText("🍎",p.x,p.gy+Math.sin(t*.1+p.x)*4); x.shadowBlur=0; } });
+
+  if(g.boss){
+    const b=g.boss, by=b.y+Math.sin(t*.1)*5;
+    const ag=x.createRadialGradient(b.x,by,10,b.x,by,95); ag.addColorStop(0,COL[g.id]+"aa"); ag.addColorStop(1,COL[g.id]+"00");
+    x.fillStyle=ag; x.fillRect(b.x-100,by-100,200,200);
+    x.font="78px serif"; x.fillText(EM[g.id],b.x,by);
+  }
+  x.shadowColor="#ff7a1a"; x.shadowBlur=14;
+  g.fires.forEach(f=>{ x.font="26px serif"; x.fillText("🔥",f.x,f.y); });
+  x.shadowColor="#fff6a8"; x.fillStyle="#fff6a8";
+  g.seeds.forEach(s=>{ x.beginPath(); x.arc(s.x,s.y,5,0,7); x.fill(); });
+  x.shadowBlur=0;
+
+  if(!(g.inv>0 && t%8<4)) birdDraw();
+  if(flapAnim>0) flapAnim--;
+
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i]; p.x+=p.vx; p.y+=p.vy; p.l-=p.t?.02:.04;
+    if(p.l<=0){ parts.splice(i,1); continue; }
+    x.globalAlpha=p.l; x.fillStyle=p.c;
+    if(p.t){ x.font="bold 18px "+FONT; x.fillText(p.t,p.x,p.y); } else { x.beginPath(); x.arc(p.x,p.y,p.s*p.l,0,7); x.fill(); }
+  }
+  x.globalAlpha=1;
+
+  // HUD
+  x.textBaseline="middle"; x.textAlign="left"; x.font="18px serif";
+  let hearts=""; for(let i=0;i<5;i++) hearts+=i<g.lives?"❤️":"🖤";
+  x.fillText(hearts,10,22);
+  x.fillStyle="#0008"; x.beginPath(); x.roundRect(W-112,8,102,28,14); x.fill();
+  x.fillStyle="#fff"; x.font="bold 15px "+FONT; x.textAlign="center"; x.fillText("⭐ "+g.score,W-61,22);
+  if(g.phase==="run") bar(W/2,52,230,g.food/g.b.food,`🍎 ${g.food}/${g.b.food} makanan`,"#3ddc84","#b6f34a");
+  else bar(W/2,52,230,g.bhp/g.b.hp,`${EM[g.id]} ${g.b.name} · ${Math.max(0,g.bhp)}/${g.b.hp}`,"#ff5a6e","#ff9a3d");
+
+  if(bannerT>0){
+    bannerT--; x.globalAlpha=Math.min(1,bannerT/30);
+    x.font="bold 44px "+FONT; x.lineWidth=6; x.strokeStyle="#7a0f1f"; x.fillStyle="#fff";
+    x.strokeText("⚠️ BOSS!",W/2,H/2-80); x.fillText("⚠️ BOSS!",W/2,H/2-80); x.globalAlpha=1;
+  }
+  if(mode==="ready"){
+    x.fillStyle="#0009"; x.fillRect(0,H/2-62,W,124);
+    x.fillStyle="#fff"; x.textAlign="center"; x.font="bold 24px "+FONT; x.fillText("👆 Tap / Spasi untuk mulai",W/2,H/2-18);
+    x.font="16px "+FONT; x.fillStyle="#cfd8ff"; x.fillText(`Lawan ${g.b.name} ${EM[g.id]}`,W/2,H/2+18);
+    x.fillText("Biji ditembak otomatis saat boss muncul",W/2,H/2+42);
+  }
+  x.restore();
+}
+
+function confetti(){
+  for(let i=0;i<46;i++){
+    const s=document.createElement("span");
+    s.className="conf"; s.textContent=["🎉","✨","🏆","🐦","🍎"][i%5];
+    s.style.left=Math.random()*100+"vw"; s.style.animationDelay=Math.random()*.9+"s";
+    document.body.appendChild(s); setTimeout(()=>s.remove(),3600);
+  }
+}
+
+async function finish(){
+  if(!g.won) return show("💀 Game Over",`Skor ${g.score}. Kamu kalah dari ${g.b.name}.`,
+    [["Coba lagi",()=>startRun(bossId)],["Menu",toMenu,true]]);
+  const had=T[bossId]>0;
+  show("🏆 Menang!","Memverifikasi permainan kamu...");
+  try{
+    const r=await fetch("/api/sign",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({player:me,bossId,seed,inputs})});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.error||"Verifikasi gagal");
+    show("🏆 Menang!",`Skor ${j.score}. Konfirmasi di wallet untuk klaim NFT...`);
+    const tx=await c.claim(bossId,j.score,j.signature);
+    await tx.wait();
+    await refresh(); toMenu();
+    $("mTitle").textContent=`🏆 ${Core.BOSS[bossId].name} KALAH!`;
+    $("mImg").src=await nft(T[bossId]);
+    $("mText").textContent=had?"Skor terbaikmu diperbarui.":"NFT trophy baru masuk ke wallet kamu 🎉";
+    $("modal").style.display="flex"; if(!had) confetti();
+  }catch(e){
+    show("⚠️ Gagal klaim",e.shortMessage||e.message,[["Coba klaim lagi",finish],["Menu",toMenu,true]]);
+  }
+}
+
+$("connectBtn").onclick=connect;
+</script>
+</body>
+</html>
